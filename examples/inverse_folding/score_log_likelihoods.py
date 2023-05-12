@@ -30,7 +30,7 @@ def score_singlechain_backbone(model, alphabet, args):
     print('\n')
 
     ll, _ = esm.inverse_folding.util.score_sequence(
-            model, alphabet, coords, native_seq) 
+            model, alphabet, coords, native_seq)
     print('Native sequence')
     print(f'Log likelihood: {ll:.2f}')
     print(f'Perplexity: {np.exp(-ll):.2f}')
@@ -45,7 +45,7 @@ def score_singlechain_backbone(model, alphabet, args):
         for header, seq in tqdm(seqs.items()):
             ll, _ = esm.inverse_folding.util.score_sequence(
                     model, alphabet, coords, str(seq))
-            fout.write(header + ',' + str(ll) + '\n')
+            fout.write(f'{header},{str(ll)}' + '\n')
     print(f'Results saved to {args.outpath}') 
 
 
@@ -62,7 +62,7 @@ def score_multichain_backbone(model, alphabet, args):
     print('\n')
 
     ll, _ = esm.inverse_folding.multichain_util.score_sequence_in_complex(
-            model, alphabet, coords, target_chain_id, native_seq) 
+            model, alphabet, coords, target_chain_id, native_seq)
     print('Native sequence')
     print(f'Log likelihood: {ll:.2f}')
     print(f'Perplexity: {np.exp(-ll):.2f}')
@@ -77,7 +77,7 @@ def score_multichain_backbone(model, alphabet, args):
         for header, seq in tqdm(seqs.items()):
             ll, _ = esm.inverse_folding.multichain_util.score_sequence_in_complex(
                     model, alphabet, coords, target_chain_id, str(seq))
-            fout.write(header + ',' + str(ll) + '\n')
+            fout.write(f'{header},{str(ll)}' + '\n')
     print(f'Results saved to {args.outpath}') 
 
 

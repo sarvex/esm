@@ -183,12 +183,10 @@ class TransformerDecoder(nn.Module):
         # decoder layers
         attn: Optional[Tensor] = None
         inner_states: List[Optional[Tensor]] = [x]
-        for idx, layer in enumerate(self.layers):
-            if incremental_state is None:
-                self_attn_mask = self.buffered_future_mask(x)
-            else:
-                self_attn_mask = None
-
+        for layer in self.layers:
+            self_attn_mask = (
+                self.buffered_future_mask(x) if incremental_state is None else None
+            )
             x, layer_attn, _ = layer(
                 x,
                 enc,
@@ -218,7 +216,7 @@ class TransformerDecoder(nn.Module):
         # self._future_mask.device != tensor.device is not working in TorchScript. This is a workaround.
         if (
             self._future_mask.size(0) == 0
-            or (not self._future_mask.device == tensor.device)
+            or self._future_mask.device != tensor.device
             or self._future_mask.size(0) < dim
         ):
             self._future_mask = torch.triu(

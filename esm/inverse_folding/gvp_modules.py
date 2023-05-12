@@ -34,14 +34,12 @@ from torch_geometric.nn import MessagePassing
 from torch_scatter import scatter_add, scatter
 
 def tuple_size(tp):
-    return tuple([0 if a is None else a.size() for a in tp])
+    return tuple(0 if a is None else a.size() for a in tp)
 
 def tuple_sum(tp1, tp2):
     s1, v1 = tp1
     s2, v2 = tp2
-    if v2 is None and v2 is None:
-        return (s1 + s2, None)
-    return (s1 + s2, v1 + v2)
+    return (s1 + s2, None) if v2 is None else (s1 + s2, v1 + v2)
 
 def tuple_cat(*args, dim=-1):
     '''
@@ -253,9 +251,7 @@ class LayerNorm(nn.Module):
                   (will be assumed to be scalar channels)
         '''
         if not self.v:
-            if self.tuple_io:
-                return self.scalar_norm(x[0]), None
-            return self.scalar_norm(x)
+            return (self.scalar_norm(x[0]), None) if self.tuple_io else self.scalar_norm(x)
         s, v = x
         vn = _norm_no_nan(v, axis=-1, keepdims=True, sqrt=False, eps=self.eps)
         nonzero_mask = (vn > 2 * self.eps)
@@ -290,7 +286,7 @@ class GVPConv(MessagePassing):
         self.si, self.vi = in_dims
         self.so, self.vo = out_dims
         self.se, self.ve = edge_dims
-        
+
         module_list = module_list or []
         if not module_list:
             if n_layers == 1:
@@ -302,7 +298,7 @@ class GVPConv(MessagePassing):
                     GVP((2*self.si + self.se, 2*self.vi + self.ve), out_dims,
                         vector_gate=vector_gate, activations=activations)
                 )
-                for i in range(n_layers - 2):
+                for _ in range(n_layers - 2):
                     module_list.append(GVP(out_dims, out_dims,
                         vector_gate=vector_gate))
                 module_list.append(GVP(out_dims, out_dims,
@@ -376,8 +372,10 @@ class GVPConvLayer(nn.Module):
         else:
             hid_dims = 4*node_dims[0], 2*node_dims[1]
             ff_func.append(GVP(node_dims, hid_dims, vector_gate=vector_gate))
-            for i in range(n_feedforward-2):
-                ff_func.append(GVP(hid_dims, hid_dims, vector_gate=vector_gate))
+            ff_func.extend(
+                GVP(hid_dims, hid_dims, vector_gate=vector_gate)
+                for _ in range(n_feedforward - 2)
+            )
             ff_func.append(GVP(hid_dims, node_dims, activations=(None, None)))
         self.ff_func = nn.Sequential(*ff_func)
 
@@ -388,17 +386,15 @@ class GVPConvLayer(nn.Module):
             module_list = [
                 GVP((2*si + se, 2*vi + ve), edge_dims, vector_gate=vector_gate)
             ]
-            for i in range(n_edge_gvps - 2):
-                module_list.append(GVP(edge_dims, edge_dims,
-                    vector_gate=vector_gate))
+            module_list.extend(
+                GVP(edge_dims, edge_dims, vector_gate=vector_gate)
+                for _ in range(n_edge_gvps - 2)
+            )
             if n_edge_gvps > 1:
                 module_list.append(GVP(edge_dims, edge_dims,
                     activations=(None, None)))
             self.edge_message_func = nn.Sequential(*module_list)
-            if layernorm:
-                self.edge_norm = LayerNorm(edge_dims, eps=eps)
-            else:
-                self.edge_norm = nn.Identity()
+            self.edge_norm = LayerNorm(edge_dims, eps=eps) if layernorm else nn.Identity()
             self.edge_dropout = Dropout(drop_rate)
 
     def forward(self, x, edge_index, edge_attr,

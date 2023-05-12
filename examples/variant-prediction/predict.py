@@ -35,11 +35,10 @@ def read_msa(filename: str, nseq: int) -> List[Tuple[str, str]]:
     The input file must be in a3m format (although we use the SeqIO fasta parser)
     for remove_insertions to work properly."""
 
-    msa = [
+    return [
         (record.description, remove_insertions(str(record.seq)))
         for record in itertools.islice(SeqIO.parse(filename, "fasta"), nseq)
     ]
-    return msa
 
 
 def create_parser():

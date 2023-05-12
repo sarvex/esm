@@ -54,7 +54,7 @@ def do_setup(nb_name):
 @pytest.mark.parametrize("nb_fn", list(notebook_fns))
 def test_run_notebook(nb_fn: Path, tmp_path: Path):
     """ Simply make sure the notebooks run from a-z """
-    py_fn = tmp_path / (nb_fn.stem + ".py")
+    py_fn = tmp_path / f"{nb_fn.stem}.py"
     print(py_fn)
     convert_notebook_to_py(nb_fn, py_fn)
     os.chdir(notebook_dir)

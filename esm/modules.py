@@ -37,8 +37,7 @@ def apc(x):
 
     avg = a1 * a2
     avg.div_(a12)  # in-place to reduce memory
-    normalized = x - avg
-    return normalized
+    return x - avg
 
 
 class ESM1LayerNorm(nn.Module):
@@ -73,9 +72,8 @@ try:
         def forward(self, x):
             if not x.is_cuda:
                 return super().forward(x)
-            else:
-                with torch.cuda.device(x.device):
-                    return super().forward(x)
+            with torch.cuda.device(x.device):
+                return super().forward(x)
 
 except ImportError:
     from torch.nn import LayerNorm as ESM1bLayerNorm
@@ -215,10 +213,7 @@ class AxialTransformerLayer(nn.Module):
             self_attn_padding_mask=self_attn_padding_mask,
         )
         x = self.feed_forward_layer(x)
-        if need_head_weights:
-            return x, column_attn, row_attn
-        else:
-            return x
+        return (x, column_attn, row_attn) if need_head_weights else x
 
 
 class LearnedPositionalEmbedding(nn.Embedding):
@@ -386,10 +381,7 @@ class NormalizedResidualBlock(nn.Module):
         x = self.dropout_module(x)
         x = residual + x
 
-        if out is not None:
-            return (x,) + tuple(out)
-        else:
-            return x
+        return (x,) + tuple(out) if out is not None else x
 
 
 class FeedForwardNetwork(nn.Module):

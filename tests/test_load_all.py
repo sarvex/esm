@@ -50,7 +50,7 @@ def test_load_hub_fwd_model(model_name: str) -> None:
 @pytest.mark.parametrize("model_name", model_names)
 def test_load_local(model_name: str) -> None:
     # Assumes everything has already been loaded & cached.
-    local_path = Path.home() / ".cache/torch/hub/checkpoints" / (model_name + ".pt")
+    local_path = Path.home() / ".cache/torch/hub/checkpoints" / f"{model_name}.pt"
     if model_name.endswith("esm1v_t33_650M_UR90S"):
         return  # skip; needs to get rerouted to specific instance
     model, alphabet = esm.pretrained.load_model_and_alphabet_local(local_path)

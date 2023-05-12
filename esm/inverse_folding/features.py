@@ -106,8 +106,7 @@ class GVPInputFeaturizer(nn.Module):
         c, n = normalize(c - origin), normalize(n - origin)
         bisector = normalize(c + n)
         perp = normalize(torch.cross(c, n, dim=-1))
-        vec = -bisector * math.sqrt(1 / 3) - perp * math.sqrt(2 / 3)
-        return vec 
+        return -bisector * math.sqrt(1 / 3) - perp * math.sqrt(2 / 3) 
 
     @staticmethod
     def _dihedrals(X, eps=1e-7):
@@ -118,22 +117,20 @@ class GVPInputFeaturizer(nn.Module):
         u_2 = U[:, :-2]
         u_1 = U[:, 1:-1]
         u_0 = U[:, 2:]
-    
+
         # Backbone normals
         n_2 = normalize(torch.cross(u_2, u_1, dim=-1), dim=-1)
         n_1 = normalize(torch.cross(u_1, u_0, dim=-1), dim=-1)
-    
+
         # Angle between normals
         cosD = torch.sum(n_2 * n_1, -1)
         cosD = torch.clamp(cosD, -1 + eps, 1 - eps)
         D = torch.sign(torch.sum(u_2 * n_1, -1)) * torch.acos(cosD)
-    
+
         # This scheme will remove phi[0], psi[-1], omega[-1]
-        D = F.pad(D, [1, 2]) 
+        D = F.pad(D, [1, 2])
         D = torch.reshape(D, [bsz, -1, 3])
-        # Lift angle representations to the circle
-        D_features = torch.cat([torch.cos(D), torch.sin(D)], -1)
-        return D_features
+        return torch.cat([torch.cos(D), torch.sin(D)], -1)
 
     @staticmethod
     def _positional_embeddings(edge_index, 
@@ -143,15 +140,14 @@ class GVPInputFeaturizer(nn.Module):
         # From https://github.com/jingraham/neurips19-graph-protein-design
         num_embeddings = num_embeddings or num_positional_embeddings
         d = edge_index[0] - edge_index[1]
-     
+
         frequency = torch.exp(
             torch.arange(0, num_embeddings, 2, dtype=torch.float32,
                 device=edge_index.device)
             * -(np.log(10000.0) / num_embeddings)
         )
         angles = d.unsqueeze(-1) * frequency
-        E = torch.cat((torch.cos(angles), torch.sin(angles)), -1)
-        return E
+        return torch.cat((torch.cos(angles), torch.sin(angles)), -1)
 
     @staticmethod
     def _dist(X, coord_mask, padding_mask, top_k_neighbors, eps=1e-8):
@@ -251,9 +247,7 @@ class DihedralFeatures(nn.Module):
         if return_angles:
             return phi, psi, omega
 
-        # Lift angle representations to the circle
-        D_features = torch.cat((torch.cos(D), torch.sin(D)), 2)
-        return D_features
+        return torch.cat((torch.cos(D), torch.sin(D)), 2)
 
 
 class GVPGraphEmbedding(GVPInputFeaturizer):

@@ -103,8 +103,7 @@ class RelativePosition(nn.Module):
             mask = mask[:, None, :] * mask[:, :, None]
             diff[mask == False] = 0
 
-        output = self.embedding(diff)
-        return output
+        return self.embedding(diff)
 
 
 class FoldingTrunk(nn.Module):
@@ -131,7 +130,7 @@ class FoldingTrunk(nn.Module):
                     pairwise_head_width=self.cfg.pairwise_head_width,
                     dropout=self.cfg.dropout,
                 )
-                for i in range(self.cfg.num_blocks)
+                for _ in range(self.cfg.num_blocks)
             ]
         )
 
@@ -239,5 +238,4 @@ class FoldingTrunk(nn.Module):
         a = b.cross(c, dim=-1)
         CB = -0.58273431 * a + 0.56802827 * b - 0.54067466 * c + CA
         dists = (CB[..., None, :, :] - CB[..., :, None, :]).pow(2).sum(dim=-1, keepdims=True)
-        bins = torch.sum(dists > boundaries, dim=-1)  # [..., L, L]
-        return bins
+        return torch.sum(dists > boundaries, dim=-1)

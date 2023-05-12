@@ -45,17 +45,15 @@ class GVPTransformerModel(nn.Module):
 
     @classmethod
     def build_encoder(cls, args, src_dict, embed_tokens):
-        encoder = GVPTransformerEncoder(args, src_dict, embed_tokens)
-        return encoder
+        return GVPTransformerEncoder(args, src_dict, embed_tokens)
 
     @classmethod
     def build_decoder(cls, args, tgt_dict, embed_tokens):
-        decoder = TransformerDecoder(
+        return TransformerDecoder(
             args,
             tgt_dict,
             embed_tokens,
         )
-        return decoder
 
     @classmethod
     def build_embedding(cls, args, dictionary, embed_dim):
@@ -103,7 +101,7 @@ class GVPTransformerModel(nn.Module):
         batch_coords, confidence, _, _, padding_mask = (
             batch_converter([(coords, confidence, None)], device=device)
         )
-        
+
         # Start with prepend token
         mask_idx = self.decoder.dictionary.get_idx('<mask>')
         sampled_tokens = torch.full((1, 1+L), mask_idx, dtype=int)
@@ -111,17 +109,17 @@ class GVPTransformerModel(nn.Module):
         if partial_seq is not None:
             for i, c in enumerate(partial_seq):
                 sampled_tokens[0, i+1] = self.decoder.dictionary.get_idx(c)
-            
+
         # Save incremental states for faster sampling
-        incremental_state = dict()
-        
+        incremental_state = {}
+
         # Run encoder only once
         encoder_out = self.encoder(batch_coords, padding_mask, confidence)
-        
+
         # Make sure all tensors are on the same device if a GPU is present
         if device:
             sampled_tokens = sampled_tokens.to(device)
-        
+
         # Decode one token at a time
         for i in range(1, L+1):
             logits, _ = self.decoder(
@@ -135,6 +133,6 @@ class GVPTransformerModel(nn.Module):
             if sampled_tokens[0, i] == mask_idx:
                 sampled_tokens[:, i] = torch.multinomial(probs, 1).squeeze(-1)
         sampled_seq = sampled_tokens[0, 1:]
-        
+
         # Convert back to string via lookup
         return ''.join([self.decoder.dictionary.get_tok(a) for a in sampled_seq])

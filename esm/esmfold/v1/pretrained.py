@@ -20,12 +20,11 @@ def _load_model(model_name):
     expected_keys = set(model.state_dict().keys())
     found_keys = set(model_state.keys())
 
-    missing_essential_keys = []
-    for missing_key in expected_keys - found_keys:
-        if not missing_key.startswith("esm."):
-            missing_essential_keys.append(missing_key)
-
-    if missing_essential_keys:
+    if missing_essential_keys := [
+        missing_key
+        for missing_key in expected_keys - found_keys
+        if not missing_key.startswith("esm.")
+    ]:
         raise RuntimeError(f"Keys '{', '.join(missing_essential_keys)}' are missing.")
 
     model.load_state_dict(model_state, strict=False)

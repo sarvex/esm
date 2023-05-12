@@ -269,10 +269,8 @@ class ESMFold(nn.Module):
                 for batch_ptm_logits, sl in zip(ptm_logits, seqlen)
             ]
         )
-        structure.update(
-            compute_predicted_aligned_error(
-                ptm_logits, max_bin=31, no_bins=self.distogram_bins
-            )
+        structure |= compute_predicted_aligned_error(
+            ptm_logits, max_bin=31, no_bins=self.distogram_bins
         )
 
         return structure

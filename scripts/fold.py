@@ -177,7 +177,7 @@ def run(args):
         tottime = timer() - start
         time_string = f"{tottime / len(headers):0.1f}s"
         if len(sequences) > 1:
-            time_string = time_string + f" (amortized, batch size {len(sequences)})"
+            time_string = f"{time_string} (amortized, batch size {len(sequences)})"
         for header, seq, pdb_string, mean_plddt, ptm in zip(
             headers, sequences, pdbs, output["mean_plddt"], output["ptm"]
         ):

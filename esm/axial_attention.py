@@ -107,8 +107,7 @@ class RowSelfAttention(nn.Module):
         v = self.v_proj(x).view(num_rows, num_cols, batch_size, self.num_heads, self.head_dim)
         context = torch.einsum(f"{self.attn_shape},rjnhd->rinhd", attn_probs, v)
         context = context.contiguous().view(num_rows, num_cols, batch_size, embed_dim)
-        output = self.out_proj(context)
-        return output
+        return self.out_proj(context)
 
     def forward(
         self,
@@ -119,15 +118,14 @@ class RowSelfAttention(nn.Module):
         num_rows, num_cols, batch_size, embed_dim = x.size()
         if (num_rows * num_cols > self.max_tokens_per_msa) and not torch.is_grad_enabled():
             return self._batched_forward(x, self_attn_mask, self_attn_padding_mask)
-        else:
-            scaling = self.align_scaling(x)
-            attn_weights = self.compute_attention_weights(
-                x, scaling, self_attn_mask, self_attn_padding_mask
-            )
-            attn_probs = attn_weights.softmax(-1)
-            attn_probs = self.dropout_module(attn_probs)
-            output = self.compute_attention_update(x, attn_probs)
-            return output, attn_probs
+        scaling = self.align_scaling(x)
+        attn_weights = self.compute_attention_weights(
+            x, scaling, self_attn_mask, self_attn_padding_mask
+        )
+        attn_probs = attn_weights.softmax(-1)
+        attn_probs = self.dropout_module(attn_probs)
+        output = self.compute_attention_update(x, attn_probs)
+        return output, attn_probs
 
 
 class ColumnSelfAttention(nn.Module):

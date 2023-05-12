@@ -41,10 +41,7 @@ class FastaBatchedDataset(object):
                 if line.startswith(">"):  # label line
                     _flush_current_seq()
                     line = line[1:].strip()
-                    if len(line) > 0:
-                        cur_seq_label = line
-                    else:
-                        cur_seq_label = f"seqnum{line_idx:09d}"
+                    cur_seq_label = line if len(line) > 0 else f"seqnum{line_idx:09d}"
                 else:  # sequence line
                     buf.append(line.strip())
 
@@ -71,7 +68,7 @@ class FastaBatchedDataset(object):
 
         def _flush_current_buf():
             nonlocal max_len, buf
-            if len(buf) == 0:
+            if not buf:
                 return
             batches.append(buf)
             buf = []
@@ -107,8 +104,9 @@ class Alphabet(object):
 
         self.all_toks = list(self.prepend_toks)
         self.all_toks.extend(self.standard_toks)
-        for i in range((8 - (len(self.all_toks) % 8)) % 8):
-            self.all_toks.append(f"<null_{i  + 1}>")
+        self.all_toks.extend(
+            f"<null_{i + 1}>" for i in range((8 - (len(self.all_toks) % 8)) % 8)
+        )
         self.all_toks.extend(self.append_toks)
 
         self.tok_to_idx = {tok: i for i, tok in enumerate(self.all_toks)}
@@ -141,21 +139,21 @@ class Alphabet(object):
 
     @classmethod
     def from_architecture(cls, name: str) -> "Alphabet":
-        if name in ("ESM-1", "protein_bert_base"):
+        if name in {"ESM-1", "protein_bert_base"}:
             standard_toks = proteinseq_toks["toks"]
             prepend_toks: Tuple[str, ...] = ("<null_0>", "<pad>", "<eos>", "<unk>")
             append_toks: Tuple[str, ...] = ("<cls>", "<mask>", "<sep>")
             prepend_bos = True
             append_eos = False
             use_msa = False
-        elif name in ("ESM-1b", "roberta_large"):
+        elif name in {"ESM-1b", "roberta_large"}:
             standard_toks = proteinseq_toks["toks"]
             prepend_toks = ("<cls>", "<pad>", "<eos>", "<unk>")
             append_toks = ("<mask>",)
             prepend_bos = True
             append_eos = True
             use_msa = False
-        elif name in ("MSA Transformer", "msa_transformer"):
+        elif name in {"MSA Transformer", "msa_transformer"}:
             standard_toks = proteinseq_toks["toks"]
             prepend_toks = ("<cls>", "<pad>", "<eos>", "<unk>")
             append_toks = ("<mask>",)
@@ -208,8 +206,6 @@ class Alphabet(object):
                 elif i == len(split_text) - 1:
                     if sub_text:
                         result.append(sub_text)
-                    else:
-                        pass
                 else:
                     if sub_text:
                         result.append(sub_text)
@@ -299,12 +295,7 @@ class BatchConverter(object):
 
 class MSABatchConverter(BatchConverter):
     def __call__(self, inputs: Union[Sequence[RawMSA], RawMSA]):
-        if isinstance(inputs[0][0], str):
-            # Input is a single MSA
-            raw_batch: Sequence[RawMSA] = [inputs]  # type: ignore
-        else:
-            raw_batch = inputs  # type: ignore
-
+        raw_batch = [inputs] if isinstance(inputs[0][0], str) else inputs
         batch_size = len(raw_batch)
         max_alignments = max(len(msa) for msa in raw_batch)
         max_seqlen = max(len(msa[0][1]) for msa in raw_batch)
@@ -322,8 +313,8 @@ class MSABatchConverter(BatchConverter):
         strs = []
 
         for i, msa in enumerate(raw_batch):
-            msa_seqlens = set(len(seq) for _, seq in msa)
-            if not len(msa_seqlens) == 1:
+            msa_seqlens = {len(seq) for _, seq in msa}
+            if len(msa_seqlens) != 1:
                 raise RuntimeError(
                     "Received unaligned sequences for input to MSA, all sequence "
                     "lengths must be equal."
@@ -343,10 +334,12 @@ def read_fasta(
     to_upper=False,
 ):
     with open(path, "r") as f:
-        for result in read_alignment_lines(
-            f, keep_gaps=keep_gaps, keep_insertions=keep_insertions, to_upper=to_upper
-        ):
-            yield result
+        yield from read_alignment_lines(
+            f,
+            keep_gaps=keep_gaps,
+            keep_insertions=keep_insertions,
+            to_upper=to_upper,
+        )
 
 
 def read_alignment_lines(

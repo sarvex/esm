@@ -71,10 +71,8 @@ def _concatenate_coords(coords, target_chain_id, padding_length=10):
     for chain_id in coords:
         if chain_id == target_chain_id:
             continue
-        coords_list.append(pad_coords)
-        coords_list.append(coords[chain_id])
-    coords_concatenated = np.concatenate(coords_list, axis=0)
-    return coords_concatenated
+        coords_list.extend((pad_coords, coords[chain_id]))
+    return np.concatenate(coords_list, axis=0)
 
 
 def sample_sequence_in_complex(model, coords, target_chain_id, temperature=1.,

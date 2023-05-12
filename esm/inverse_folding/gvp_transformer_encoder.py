@@ -62,7 +62,7 @@ class GVPTransformerEncoder(nn.Module):
 
         self.layers = nn.ModuleList([])
         self.layers.extend(
-            [self.build_encoder_layer(args) for i in range(args.encoder_layers)]
+            [self.build_encoder_layer(args) for _ in range(args.encoder_layers)]
         )
         self.num_layers = len(self.layers)
         self.layer_norm = nn.LayerNorm(embed_dim)
@@ -77,14 +77,13 @@ class GVPTransformerEncoder(nn.Module):
             padding_mask: boolean Tensor (true for padding) of shape length
             confidence: confidence scores between 0 and 1 of shape length
         """
-        components = dict()
         coord_mask = torch.all(torch.all(torch.isfinite(coords), dim=-1), dim=-1)
         coords = nan_to_num(coords)
         mask_tokens = (
             padding_mask * self.dictionary.padding_idx + 
             ~padding_mask * self.dictionary.get_idx("<mask>")
         )
-        components["tokens"] = self.embed_tokens(mask_tokens) * self.embed_scale
+        components = {"tokens": self.embed_tokens(mask_tokens) * self.embed_scale}
         components["diherals"] = self.embed_dihedrals(coords)
 
         # GVP encoder

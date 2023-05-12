@@ -18,7 +18,12 @@ from esm.model.esm2 import ESM2
 def _has_regression_weights(model_name):
     """Return whether we expect / require regression weights;
     Right now that is all models except ESM-1v, ESM-IF, and partially trained ESM2 models"""
-    return not ("esm1v" in model_name or "esm_if" in model_name or "270K" in model_name or "500K" in model_name)
+    return (
+        "esm1v" not in model_name
+        and "esm_if" not in model_name
+        and "270K" not in model_name
+        and "500K" not in model_name
+    )
 
 
 def load_model_and_alphabet(model_name):
@@ -45,8 +50,7 @@ def load_hub_workaround(url):
 
 def load_regression_hub(model_name):
     url = f"https://dl.fbaipublicfiles.com/fair-esm/regression/{model_name}-contact-regression.pt"
-    regression_data = load_hub_workaround(url)
-    return regression_data
+    return load_hub_workaround(url)
 
 
 def _download_model_and_regression_data(model_name):
@@ -198,11 +202,9 @@ def load_model_and_alphabet_core(model_name, model_data, regression_data=None):
     if regression_data is None:
         expected_missing = {"contact_head.regression.weight", "contact_head.regression.bias"}
         error_msgs = []
-        missing = (expected_keys - found_keys) - expected_missing
-        if missing:
+        if missing := (expected_keys - found_keys) - expected_missing:
             error_msgs.append(f"Missing key(s) in state_dict: {missing}.")
-        unexpected = found_keys - expected_keys
-        if unexpected:
+        if unexpected := found_keys - expected_keys:
             error_msgs.append(f"Unexpected key(s) in state_dict: {unexpected}.")
 
         if error_msgs:

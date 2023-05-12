@@ -176,8 +176,7 @@ def get_rotation_frames(coords):
     u2 = v2 - e1 * torch.sum(e1 * v2, dim=-1, keepdim=True)
     e2 = normalize(u2, dim=-1)
     e3 = torch.cross(e1, e2, dim=-1)
-    R = torch.stack([e1, e2, e3], dim=-2)
-    return R
+    return torch.stack([e1, e2, e3], dim=-2)
 
 
 def nan_to_num(ts, val=0.0):
@@ -233,12 +232,12 @@ class CoordBatchConverter(BatchConverter):
             tokens: LongTensor of shape batch_size x L
             padding_mask: ByteTensor of shape batch_size x L
         """
-        self.alphabet.cls_idx = self.alphabet.get_idx("<cath>") 
+        self.alphabet.cls_idx = self.alphabet.get_idx("<cath>")
         batch = []
         for coords, confidence, seq in raw_batch:
             if confidence is None:
                 confidence = 1.
-            if isinstance(confidence, float) or isinstance(confidence, int):
+            if isinstance(confidence, (float, int)):
                 confidence = [float(confidence)] * len(coords)
             if seq is None:
                 seq = 'X' * len(coords)
@@ -306,11 +305,11 @@ class CoordBatchConverter(BatchConverter):
         """
         if len(samples) == 0:
             return torch.Tensor()
-        if len(set(x.dim() for x in samples)) != 1:
+        if len({x.dim() for x in samples}) != 1:
             raise RuntimeError(
                 f"Samples has varying dimensions: {[x.dim() for x in samples]}"
             )
-        (device,) = tuple(set(x.device for x in samples))  # assumes all on same device
+        (device,) = tuple({x.device for x in samples})
         max_shape = [max(lst) for lst in zip(*[x.shape for x in samples])]
         result = torch.empty(
             len(samples), *max_shape, dtype=samples[0].dtype, device=device

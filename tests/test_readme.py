@@ -43,12 +43,10 @@ def test_readme_2():
         results = model(batch_tokens, repr_layers=[33], return_contacts=True)
     token_representations = results["representations"][33]
 
-    # Generate per-sequence representations via averaging
-    # NOTE: token 0 is always a beginning-of-sequence token, so the first residue is token 1.
-    sequence_representations = []
-    for i, tokens_len in enumerate(batch_lens):
-        sequence_representations.append(token_representations[i, 1 : tokens_len - 1].mean(0))
-
+    sequence_representations = [
+        token_representations[i, 1 : tokens_len - 1].mean(0)
+        for i, tokens_len in enumerate(batch_lens)
+    ]
     # Look at the unsupervised self-attention map contact predictions
     try:
         import matplotlib.pyplot as plt
